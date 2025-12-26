@@ -7,7 +7,7 @@ import os
 import random
 import torch
 import torch.nn.functional as F
-import git
+# import git
 import numpy as np
 import wandb
 from tqdm import tqdm
@@ -18,7 +18,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from exp.parser import get_parser
 from models.positional_encodings import append_top_k_evectors
 from models.cont_models import DiagSheafDiffusion, BundleSheafDiffusion, GeneralSheafDiffusion
-from models.disc_models import DiscreteDiagSheafDiffusion, DiscreteBundleSheafDiffusion, DiscreteGeneralSheafDiffusion
+from models.disc_models import DiscreteDiagSheafDiffusion, DiscreteBundleSheafDiffusion, DiscreteGeneralSheafDiffusion, DiscreteIdentityDiffusion
 from utils.heterophilic import get_dataset, get_fixed_splits
 
 
@@ -139,21 +139,21 @@ if __name__ == '__main__':
     parser = get_parser()
     args = parser.parse_args()
 
-    repo = git.Repo(search_parent_directories=True)
-    sha = repo.head.object.hexsha
+    models = {
+        'DiagSheafODE': DiagSheafDiffusion,
+        'BundleSheafODE': BundleSheafDiffusion,
+        'GeneralSheafODE': GeneralSheafDiffusion,
+        'DiagSheaf': DiscreteDiagSheafDiffusion,
+        'BundleSheaf': DiscreteBundleSheafDiffusion,
+        'GeneralSheaf': DiscreteGeneralSheafDiffusion,
+        'IdentitySheaf': DiscreteIdentityDiffusion,
+    }
 
-    if args.model == 'DiagSheafODE':
-        model_cls = DiagSheafDiffusion
-    elif args.model == 'BundleSheafODE':
-        model_cls = BundleSheafDiffusion
-    elif args.model == 'GeneralSheafODE':
-        model_cls = GeneralSheafDiffusion
-    elif args.model == 'DiagSheaf':
-        model_cls = DiscreteDiagSheafDiffusion
-    elif args.model == 'BundleSheaf':
-        model_cls = DiscreteBundleSheafDiffusion
-    elif args.model == 'GeneralSheaf':
-        model_cls = DiscreteGeneralSheafDiffusion
+    # repo = git.Repo(search_parent_directories=True)
+    sha = "shgapo"
+
+    if args.model in models:
+        model_cls = models[args.model]
     else:
         raise ValueError(f'Unknown model {args.model}')
 
