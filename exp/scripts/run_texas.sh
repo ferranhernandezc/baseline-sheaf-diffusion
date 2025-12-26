@@ -2,9 +2,10 @@
 
 python -m exp.run \
     --dataset=texas \
+    --add_hp=True \
     --d=1 \
     --layers=5 \
-    --hidden_channels=30 \
+    --hidden_channels=32 \
     --left_weights=True \
     --right_weights=True \
     --lr=0.03 \
