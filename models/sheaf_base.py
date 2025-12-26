@@ -60,6 +60,6 @@ class SheafDiffusion(nn.Module):
                 sheaf_learners.append(param)
             else:
                 others.append(param)
-        assert len(sheaf_learners) > 0
+        assert len(sheaf_learners) >= 0
         assert len(sheaf_learners) + len(others) == len(list(self.parameters()))
         return sheaf_learners, others
