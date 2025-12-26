@@ -5,13 +5,13 @@ python -m exp.run \
     --add_lp=False \
     --d=1 \
     --dataset=wisconsin \
-    --dropout=0.7276458263736642 \
+    --dropout=0.8 \
     --early_stopping=200 \
     --epochs=500 \
     --folds=10 \
     --hidden_channels=96 \
     --input_dropout=0 \
-    --layers=2 \
+    --layers=5 \
     --lr=0.02 \
     --model=IdentitySheaf \
     --orth=householder \
