@@ -171,4 +171,13 @@ class QuadraticFormSheafLearner(SheafLearner):
             return torch.tanh(maps).view(-1, self.out_shape[0], self.out_shape[1])
         else:
             return torch.tanh(maps).view(-1, self.out_shape[0])
+        
+class ConstantSheafLearner(SheafLearner):
+    def __init__(self, in_channels: int, out_shape: Tuple[int], **kwargs):
+        super(ConstantSheafLearner, self).__init__()
+        assert "maps" in kwargs, "Maps are required for constant sheaf learner"
 
+        self.maps = kwargs["maps"]
+
+    def forward(self, x, edge_index):
+       return self.maps
