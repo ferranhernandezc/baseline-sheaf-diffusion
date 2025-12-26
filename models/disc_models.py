@@ -298,7 +298,6 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
 class DiscreteIdentityDiffusion(SheafDiffusion):
     def __init__(self, edge_index, args):
         super(DiscreteIdentityDiffusion, self).__init__(edge_index, args)
-        assert args['d'] > 1
 
         self.lin_right_weights = nn.ModuleList()
         self.lin_left_weights = nn.ModuleList()
