@@ -46,7 +46,7 @@ class Actor(InMemoryDataset):
     def __init__(self, root: str, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None):
         super().__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self) -> List[str]:
@@ -145,7 +145,7 @@ class WikipediaNetwork(InMemoryDataset):
         self.name = name.lower()
         assert self.name in ['chameleon', 'squirrel']
         super().__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_dir(self) -> str:
@@ -225,7 +225,7 @@ class WebKB(InMemoryDataset):
         assert self.name in ['cornell', 'texas', 'washington', 'wisconsin']
 
         super(WebKB, self).__init__(root, transform, pre_transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_dir(self):
