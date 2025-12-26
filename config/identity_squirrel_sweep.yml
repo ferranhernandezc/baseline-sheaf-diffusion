@@ -1,0 +1,66 @@
+program: exp/run.py
+method: random
+metric:
+  name: val_acc
+  goal: maximize
+parameters:
+  model:
+    distribution: constant
+    value: "IdentitySheaf"
+  d:
+    distribution: constant
+    value: 1
+  add_lp:
+    distribution: categorical
+    values: [1, 0]
+  add_hp:
+    distribution: categorical
+    values: [1, 0]
+  dataset:
+    distribution: constant
+    value: 'squirrel'
+  layers:
+    distribution: categorical
+    values: [2, 3, 4, 5, 6, 7, 8]
+  hidden_channels:
+    distribution: categorical
+    values: [8, 16, 32, 64]
+  weight_decay:
+    distribution: log_uniform
+    min: -11.0
+    max: -4.5
+  sheaf_decay:
+    distribution: log_uniform
+    min: -11.0
+    max: -4.5
+  input_dropout:
+    distribution: categorical
+    values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  dropout:
+    distribution: categorical
+    values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  lr:
+    value: 0.01
+  epochs:
+    distribution: constant
+    value: 200
+  early_stopping:
+    distribution: constant
+    value: 25
+  folds:
+    distribution: constant
+    value: 3
+  orth:
+    distribution: constant
+    value: "householder"
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --left_weights=True
+  - --right_weights=True
+  - --use_act=True
+  - --normalised=True
+  - --edge_weights=True
+  - --entity=${ENTITY}
