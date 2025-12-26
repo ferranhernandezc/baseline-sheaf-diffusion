@@ -5,3 +5,4 @@
 datasets/
 wandb/
 *.DS_Store
+.venv*
