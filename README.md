@@ -1,23 +1,53 @@
 [![example workflow](https://github.com/twitter-research/neural-sheaf-diffusion/actions/workflows/python-tests.yml/badge.svg)](https://github.com/twitter-research/neural-sheaf-diffusion/actions) 
 [![License: MIT](https://img.shields.io/badge/License-Apache%202-green.svg)](https://github.com/twitter-research/neural-sheaf-diffusion/blob/main/LICENSE)
 
-# Neural Sheaf Diffusion
+# Neural Sheaf Baseline
 
-This repository contains the official code for the paper 
-**[Neural Sheaf Diffusion: A Topological Perspective on Heterophily and Oversmoothing in GNNs](https://arxiv.org/abs/2202.04579) (NeurIPS 2022)**.
+## Setup instructions
 
-![Sheaf Neural Networks](figures/sheaf.png)
-
-## Getting started
-
-We used `CUDA 10.2` for this project. To set up the environment, run the following command:
+### Create and activate virtual environment
 
 ```bash
-conda env create --file=environment_gpu.yml
-conda activate nsd
+python -m venv .venv
+
+source .venv/bin/activate
 ```
-For using another `CUDA` version, modify the version specified inside `environment_gpu.yml`. If you like to run 
-the code in a CPU-only environment, then use `environment_cpu`. 
+
+### Install PyTorch 2.7.0 (CPU or GPU)
+
+Choose one of the following wheel tags:
+- GPU (CUDA): ```cu128```
+- CPU-only: ```cpu```
+
+Set the tag:
+```bash
+export TORCH_TAG=cu128   # or: cpu
+```
+
+Install PyTorch:
+
+```bash
+pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 \
+  --index-url https://download.pytorch.org/whl/${TORCH_TAG}
+```
+
+### Install PyG compiled dependencies
+
+The PyG wheels must match the same Torch tag:
+
+```bash
+pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv \
+  -f https://data.pyg.org/whl/torch-2.7.0+${TORCH_TAG}.html
+pip install torch_geometric
+```
+
+### Install remaining dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Setup check
 
 To make sure that everything is set up correctly, you can run all the tests using:
 ```bash

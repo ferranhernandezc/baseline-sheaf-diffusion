@@ -1,0 +1,6 @@
+torch-householder
+torchdiffeq==0.2.2
+wandb
+tqdm==4.62.3
+networkx==2.6.3
+pytest
