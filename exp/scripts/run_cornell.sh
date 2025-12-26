@@ -10,7 +10,7 @@ python -m exp.run \
     --epochs=500 \
     --folds=10 \
     --hidden_channels=64 \
-    --input_dropout=0.2 \
+    --input_dropout=0.0 \
     --layers=4 \
     --lr=0.02 \
     --model=IdentitySheaf \
