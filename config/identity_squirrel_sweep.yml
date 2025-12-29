@@ -1,5 +1,5 @@
 program: exp/run.py
-method: random
+method: bayes
 metric:
   name: val_acc
   goal: maximize
@@ -11,8 +11,8 @@ parameters:
     distribution: constant
     value: 1
   add_lp:
-    distribution: categorical
-    values: [1, 0]
+    distribution: constant
+    value: 0
   add_hp:
     distribution: categorical
     values: [1, 0]
@@ -24,7 +24,7 @@ parameters:
     values: [2, 3, 4, 5, 6, 7, 8]
   hidden_channels:
     distribution: categorical
-    values: [8, 16, 32, 64]
+    values: [8, 16, 32, 64, 128]
   weight_decay:
     distribution: log_uniform
     min: -11.0
@@ -63,4 +63,5 @@ command:
   - --use_act=True
   - --normalised=True
   - --edge_weights=True
+  - --second_linear=True
   - --entity=${ENTITY}
