@@ -8,11 +8,11 @@ parameters:
     distribution: constant
     value: "IdentitySheaf"
   d:
-    distribution: constant
-    value: 1
-  add_lp:
     distribution: categorical
-    values: [1, 0]
+    value: [1, 2]
+  add_lp:
+    distribution: constant
+    values: 0
   add_hp:
     distribution: categorical
     values: [1, 0]
@@ -21,10 +21,10 @@ parameters:
     value: 'chameleon'
   layers:
     distribution: categorical
-    values: [2, 3, 4, 5, 6, 7, 8]
+    values: [4, 5, 6, 7]
   hidden_channels:
     distribution: categorical
-    values: [8, 16, 32, 64]
+    values: [64, 128, 256]
   weight_decay:
     distribution: log_uniform
     min: -11.0
@@ -35,18 +35,19 @@ parameters:
     max: -4.5
   input_dropout:
     distribution: categorical
-    values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    values: [0.7, 0.8, 0.9]
   dropout:
     distribution: categorical
-    values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    values: [0.0, 0.1]
   lr:
-    value: 0.01
+    distribution: categorical
+    value: [0.01, 0.005]
   epochs:
     distribution: constant
-    value: 200
+    value: 400
   early_stopping:
     distribution: constant
-    value: 25
+    value: 50
   folds:
     distribution: constant
     value: 3
