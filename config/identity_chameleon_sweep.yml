@@ -9,10 +9,10 @@ parameters:
     value: "IdentitySheaf"
   d:
     distribution: categorical
-    value: [1, 2]
+    values: [1, 2]
   add_lp:
     distribution: constant
-    values: 0
+    value: 0
   add_hp:
     distribution: categorical
     values: [1, 0]
@@ -41,7 +41,7 @@ parameters:
     values: [0.0, 0.1]
   lr:
     distribution: categorical
-    value: [0.01, 0.005]
+    values: [0.01, 0.005]
   epochs:
     distribution: constant
     value: 400
