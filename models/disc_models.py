@@ -9,7 +9,7 @@ from torch import nn
 from models.sheaf_base import SheafDiffusion
 from models import laplacian_builders as lb
 from models.sheaf_models import ConstantSheafLearner, LocalConcatSheafLearner, EdgeWeightLearner, LocalConcatSheafLearnerVariant
-
+from models.dirichlet_energy import compute_dirichlet_energy_and_baseline
 
 class DiscreteDiagSheafDiffusion(SheafDiffusion):
 
@@ -44,6 +44,12 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
                                                          normalised=self.normalised,
                                                          deg_normalised=self.deg_normalised,
                                                          add_hp=self.add_hp, add_lp=self.add_lp)
+        
+        maps = torch.eye(self.d).reshape(1,self.d,self.d).repeat(self.edge_index.shape[1],1,1).to(self.device)
+        laplacian_builder = lb.GeneralLaplacianBuilder(
+            self.graph_size, edge_index, d=self.d, add_lp=self.add_lp, add_hp=self.add_hp,
+            normalised=self.normalised, deg_normalised=self.deg_normalised)
+        self.id_L, _ = laplacian_builder(maps)
 
         self.epsilons = nn.ParameterList()
         for i in range(self.layers):
@@ -54,7 +60,7 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
             self.lin12 = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.lin2 = nn.Linear(self.hidden_dim, self.output_dim)
 
-    def forward(self, x):
+    def forward(self, x, return_dirichlet_energy=False):
         x = F.dropout(x, p=self.input_dropout, training=self.training)
         x = self.lin1(x)
         if self.use_act:
@@ -65,6 +71,8 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
         x = x.view(self.graph_size * self.final_d, -1)
 
         x0 = x
+        dirichlet_energies = []
+        baseline_dirichlet_energies = []
         for layer in range(self.layers):
             if layer == 0 or self.nonlinear:
                 x_maps = F.dropout(x, p=self.dropout if layer > 0 else 0., training=self.training)
@@ -82,7 +90,17 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
             if self.right_weights:
                 x = self.lin_right_weights[layer](x)
 
+            if return_dirichlet_energy:
+                x_old = x
+
             x = torch_sparse.spmm(L[0], L[1], x.size(0), x.size(0), x)
+
+            if return_dirichlet_energy:
+                dirichlet_energy, baseline_dirichlet_energy = compute_dirichlet_energy_and_baseline(x_old,
+                                                                                                    x,
+                                                                                                    self.id_L)
+                dirichlet_energies.append(dirichlet_energy.item())
+                baseline_dirichlet_energies.append(baseline_dirichlet_energy.item())
 
             if self.use_act:
                 x = F.elu(x)
@@ -93,6 +111,8 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
 
         x = x.reshape(self.graph_size, -1)
         x = self.lin2(x)
+        if return_dirichlet_energy:
+            return F.log_softmax(x, dim=1), dirichlet_energies, baseline_dirichlet_energies
         return F.log_softmax(x, dim=1)
 
 
@@ -133,6 +153,12 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
         self.laplacian_builder = lb.NormConnectionLaplacianBuilder(
             self.graph_size, edge_index, d=self.d, add_hp=self.add_hp,
             add_lp=self.add_lp, orth_map=self.orth_trans)
+        
+        maps = torch.eye(self.d).reshape(1,self.d,self.d).repeat(self.edge_index.shape[1],1,1).to(self.device)
+        laplacian_builder = lb.GeneralLaplacianBuilder(
+            self.graph_size, edge_index, d=self.d, add_lp=self.add_lp, add_hp=self.add_hp,
+            normalised=self.normalised, deg_normalised=self.deg_normalised)
+        self.id_L, _ = laplacian_builder(maps)
 
         self.epsilons = nn.ParameterList()
         for i in range(self.layers):
@@ -165,7 +191,7 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
         for weight_learner in self.weight_learners:
             weight_learner.update_edge_index(edge_index)
 
-    def forward(self, x):
+    def forward(self, x, return_dirichlet_energy=False):
         x = F.dropout(x, p=self.input_dropout, training=self.training)
         x = self.lin1(x)
         if self.use_act:
@@ -176,6 +202,8 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
         x = x.view(self.graph_size * self.final_d, -1)
 
         x0, L = x, None
+        dirichlet_energies = []
+        baseline_dirichlet_energies = []
         for layer in range(self.layers):
             if layer == 0 or self.nonlinear:
                 x_maps = F.dropout(x, p=self.dropout if layer > 0 else 0., training=self.training)
@@ -189,8 +217,18 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
 
             x = self.left_right_linear(x, self.lin_left_weights[layer], self.lin_right_weights[layer])
 
+            if return_dirichlet_energy:
+                x_old = x
+
             # Use the adjacency matrix rather than the diagonal
             x = torch_sparse.spmm(L[0], L[1], x.size(0), x.size(0), x)
+
+            if return_dirichlet_energy:
+                dirichlet_energy, baseline_dirichlet_energy = compute_dirichlet_energy_and_baseline(x_old,
+                                                                                                    x,
+                                                                                                    self.id_L)
+                dirichlet_energies.append(dirichlet_energy.item())
+                baseline_dirichlet_energies.append(baseline_dirichlet_energy.item())
 
             if self.use_act:
                 x = F.elu(x)
@@ -200,6 +238,8 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
 
         x = x.reshape(self.graph_size, -1)
         x = self.lin2(x)
+        if return_dirichlet_energy:
+            return F.log_softmax(x, dim=1), dirichlet_energies, baseline_dirichlet_energies
         return F.log_softmax(x, dim=1)
 
 
@@ -235,6 +275,12 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
         self.laplacian_builder = lb.GeneralLaplacianBuilder(
             self.graph_size, edge_index, d=self.d, add_lp=self.add_lp, add_hp=self.add_hp,
             normalised=self.normalised, deg_normalised=self.deg_normalised)
+        
+        maps = torch.eye(self.d).reshape(1,self.d,self.d).repeat(self.edge_index.shape[1],1,1).to(self.device)
+        laplacian_builder = lb.GeneralLaplacianBuilder(
+            self.graph_size, edge_index, d=self.d, add_lp=self.add_lp, add_hp=self.add_hp,
+            normalised=self.normalised, deg_normalised=self.deg_normalised)
+        self.id_L, _ = laplacian_builder(maps)
 
         self.epsilons = nn.ParameterList()
         for i in range(self.layers):
@@ -256,7 +302,7 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
 
         return x
 
-    def forward(self, x):
+    def forward(self, x, return_dirichlet_energy=False):
         x = F.dropout(x, p=self.input_dropout, training=self.training)
         x = self.lin1(x)
         if self.use_act:
@@ -268,6 +314,8 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
         x = x.view(self.graph_size * self.final_d, -1)
 
         x0, L = x, None
+        dirichlet_energies = []
+        baseline_dirichlet_energies = []
         for layer in range(self.layers):
             if layer == 0 or self.nonlinear:
                 x_maps = F.dropout(x, p=self.dropout if layer > 0 else 0., training=self.training)
@@ -279,8 +327,17 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
 
             x = self.left_right_linear(x, self.lin_left_weights[layer], self.lin_right_weights[layer])
 
+            if return_dirichlet_energy:
+                x_old = x
             # Use the adjacency matrix rather than the diagonal
             x = torch_sparse.spmm(L[0], L[1], x.size(0), x.size(0), x)
+
+            if return_dirichlet_energy:
+                dirichlet_energy, baseline_dirichlet_energy = compute_dirichlet_energy_and_baseline(x_old,
+                                                                                                    x,
+                                                                                                    self.id_L)
+                dirichlet_energies.append(dirichlet_energy.item())
+                baseline_dirichlet_energies.append(baseline_dirichlet_energy.item())
 
             if self.use_act:
                 x = F.elu(x)
@@ -293,6 +350,8 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
 
         x = x.reshape(self.graph_size, -1)
         x = self.lin2(x)
+        if return_dirichlet_energy:
+            return F.log_softmax(x, dim=1), dirichlet_energies, baseline_dirichlet_energies
         return F.log_softmax(x, dim=1)
     
 class DiscreteIdentityDiffusion(SheafDiffusion):
@@ -343,7 +402,7 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
 
         return x
 
-    def forward(self, x):
+    def forward(self, x, return_dirichlet_energy=False):
         x = F.dropout(x, p=self.input_dropout, training=self.training)
         x = self.lin1(x)
         if self.use_act:
@@ -354,15 +413,22 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
             x = self.lin12(x)
         x = x.view(self.graph_size * self.final_d, -1)
 
-        x0, L = x, self.L
+        x0= x
+        dirichlet_energies = []
         for layer in range(self.layers):
 
             x = F.dropout(x, p=self.dropout, training=self.training)
 
             x = self.left_right_linear(x, self.lin_left_weights[layer], self.lin_right_weights[layer])
 
+            if return_dirichlet_energy:
+                x_old_t = torch.transpose(x, 0, 1)
             # Use the adjacency matrix rather than the diagonal
-            x = torch_sparse.spmm(L[0], L[1], x.size(0), x.size(0), x)
+            x = torch_sparse.spmm(self.L[0], self.L[1], x.size(0), x.size(0), x)
+
+            if return_dirichlet_energy:
+                dirichlet_energy = torch.sum(x_old_t @ x)
+                dirichlet_energies.append(dirichlet_energy.item())
 
             if self.use_act:
                 x = F.elu(x)
@@ -372,4 +438,6 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
 
         x = x.reshape(self.graph_size, -1)
         x = self.lin2(x)
+        if return_dirichlet_energy:
+            return F.log_softmax(x, dim=1), dirichlet_energies, dirichlet_energies
         return F.log_softmax(x, dim=1)
