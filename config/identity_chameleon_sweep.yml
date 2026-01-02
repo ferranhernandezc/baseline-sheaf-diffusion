@@ -64,4 +64,5 @@ command:
   - --use_act=True
   - --normalised=True
   - --edge_weights=True
+  - --second_linear=True
   - --entity=${ENTITY}
