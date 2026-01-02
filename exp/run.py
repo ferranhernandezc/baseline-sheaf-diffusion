@@ -2,6 +2,7 @@
 # Copyright 2022 Twitter, Inc.
 # SPDX-License-Identifier: Apache-2.0
 
+import copy
 import sys
 import os
 import random
@@ -11,6 +12,7 @@ import torch.nn.functional as F
 import numpy as np
 import wandb
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 # This is required here by wandb sweeps.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -48,7 +50,8 @@ def train(model, optimizer, data):
 def test(model, data):
     model.eval()
     with torch.no_grad():
-        logits, accs, losses, preds = model(data.x), [], [], []
+        logits = model(data.x)
+        accs, losses, preds = [], [], []
         for _, mask in data('train_mask', 'val_mask', 'test_mask'):
             pred = logits[mask].max(1)[1]
             acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
@@ -106,6 +109,7 @@ def run_exp(args, dataset, model_cls, fold):
             test_acc = tmp_test_acc
             best_epoch = epoch
             bad_counter = 0
+            best_model = copy.deepcopy(model)
         else:
             bad_counter += 1
 
@@ -115,6 +119,9 @@ def run_exp(args, dataset, model_cls, fold):
     print(f"Fold {fold} | Epochs: {epoch} | Best epoch: {best_epoch}")
     print(f"Test acc: {test_acc:.4f}")
     print(f"Best val acc: {best_val_acc:.4f}")
+
+    if args.return_dirichlet_energy:
+        _, dirichlet_energies, baseline_dirichlet_energies = best_model(data.x, return_dirichlet_energy=True)
 
     if "ODE" not in args['model']:
         # Debugging for discrete models
@@ -131,7 +138,8 @@ def run_exp(args, dataset, model_cls, fold):
 
     wandb.log({'best_test_acc': test_acc, 'best_val_acc': best_val_acc, 'best_epoch': best_epoch})
     keep_running = False if test_acc < args['min_acc'] else True
-
+    if args.return_dirichlet_energy:
+        return test_acc, best_val_acc, keep_running, dirichlet_energies, baseline_dirichlet_energies
     return test_acc, best_val_acc, keep_running
 
 
@@ -161,6 +169,10 @@ if __name__ == '__main__':
     if args.evectors > 0:
         dataset = append_top_k_evectors(dataset, args.evectors)
 
+    os.makedirs("./plots", exist_ok=True)
+    os.makedirs(f"./plots/{dataset.name}", exist_ok=True)
+    os.makedirs(f"./plots/{dataset.name}/{args.model}", exist_ok=True)
+
     # Add extra arguments
     args.sha = sha
     args.graph_size = dataset[0].x.size(0)
@@ -182,10 +194,27 @@ if __name__ == '__main__':
     print(f"Running with wandb account: {args.entity}")
     print(args)
     wandb.init(project="sheaf", config=vars(args), entity=args.entity)
-
+    dir_energ = []
+    m = dataset.data.edge_index.shape[1]/2
     for fold in tqdm(range(args.folds)):
-        test_acc, best_val_acc, keep_running = run_exp(wandb.config, dataset, model_cls, fold)
-        results.append([test_acc, best_val_acc])
+        if not args.return_dirichlet_energy:
+            test_acc, best_val_acc, keep_running = run_exp(wandb.config, dataset, model_cls, fold)
+            results.append([test_acc, best_val_acc])
+        else:
+            test_acc, best_val_acc, keep_running, dirichlet_energies, baseline_dirichlet_energies = run_exp(wandb.config,
+                                                                                                            dataset,
+                                                                                                            model_cls,
+                                                                                                            fold)
+            dirichlet_energies = [dir_en/m for dir_en in dirichlet_energies]
+            baseline_dirichlet_energies = [dir_en/m for dir_en in baseline_dirichlet_energies]
+            results.append([test_acc, best_val_acc])
+            plt.clf()
+            plt.plot(dirichlet_energies, label='Sheaf Dirichlet Energy')
+            plt.plot(baseline_dirichlet_energies, label='Baseline Dirichlet Energy')
+            plt.legend()
+            plt.savefig(f'./plots/{dataset.name}/{args.model}/fold_{fold}_dirichlet_energies.png')
+            print(f"Dirichlet Energies: {dirichlet_energies}")
+            print(f"Baseline Dirichlet Energies: {dirichlet_energies}")
         if not keep_running:
             break
 
