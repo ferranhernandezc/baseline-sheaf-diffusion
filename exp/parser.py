@@ -88,4 +88,5 @@ def get_parser():
     parser.add_argument("--max_test_steps", type=int, default=100,
                         help="Maximum number steps for the dopri5Early test integrator. "
                              "used if getting OOM errors at test time")
+    parser.add_argument("--return_dirichlet_energy", dest='return_dirichlet_energy', type=str2bool, default=False)
     return parser
