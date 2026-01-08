@@ -9,7 +9,7 @@ from torch import nn
 from models.sheaf_base import SheafDiffusion
 from models import laplacian_builders as lb
 from models.sheaf_models import ConstantSheafLearner, LocalConcatSheafLearner, EdgeWeightLearner, LocalConcatSheafLearnerVariant
-from models.dirichlet_energy import compute_dirichlet_energy_and_baseline
+from models.rayleigh_quotient import compute_rayleigh_quotient_and_baseline
 
 class DiscreteDiagSheafDiffusion(SheafDiffusion):
 
@@ -60,7 +60,7 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
             self.lin12 = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.lin2 = nn.Linear(self.hidden_dim, self.output_dim)
 
-    def forward(self, x, return_dirichlet_energy=False):
+    def forward(self, x, return_rayleigh_quotient=False):
         x = F.dropout(x, p=self.input_dropout, training=self.training)
         x = self.lin1(x)
         if self.use_act:
@@ -71,8 +71,8 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
         x = x.view(self.graph_size * self.final_d, -1)
 
         x0 = x
-        dirichlet_energies = []
-        baseline_dirichlet_energies = []
+        rayleigh_quotients = []
+        baseline_rayleigh_quotients = []
         for layer in range(self.layers):
             if layer == 0 or self.nonlinear:
                 x_maps = F.dropout(x, p=self.dropout if layer > 0 else 0., training=self.training)
@@ -90,17 +90,17 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
             if self.right_weights:
                 x = self.lin_right_weights[layer](x)
 
-            if return_dirichlet_energy:
+            if return_rayleigh_quotient:
                 x_old = x
 
             x = torch_sparse.spmm(L[0], L[1], x.size(0), x.size(0), x)
 
-            if return_dirichlet_energy:
-                dirichlet_energy, baseline_dirichlet_energy = compute_dirichlet_energy_and_baseline(x_old,
+            if return_rayleigh_quotient:
+                rayleigh_quotient, baseline_rayleigh_quotient = compute_rayleigh_quotient_and_baseline(x_old,
                                                                                                     x,
                                                                                                     self.id_L)
-                dirichlet_energies.append(dirichlet_energy.item())
-                baseline_dirichlet_energies.append(baseline_dirichlet_energy.item())
+                rayleigh_quotients.append(rayleigh_quotient.item())
+                baseline_rayleigh_quotients.append(baseline_rayleigh_quotient.item())
 
             if self.use_act:
                 x = F.elu(x)
@@ -111,8 +111,8 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
 
         x = x.reshape(self.graph_size, -1)
         x = self.lin2(x)
-        if return_dirichlet_energy:
-            return F.log_softmax(x, dim=1), dirichlet_energies, baseline_dirichlet_energies
+        if return_rayleigh_quotient:
+            return F.log_softmax(x, dim=1), rayleigh_quotients, baseline_rayleigh_quotients
         return F.log_softmax(x, dim=1)
 
 
@@ -191,7 +191,7 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
         for weight_learner in self.weight_learners:
             weight_learner.update_edge_index(edge_index)
 
-    def forward(self, x, return_dirichlet_energy=False):
+    def forward(self, x, return_rayleigh_quotient=False):
         x = F.dropout(x, p=self.input_dropout, training=self.training)
         x = self.lin1(x)
         if self.use_act:
@@ -202,8 +202,8 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
         x = x.view(self.graph_size * self.final_d, -1)
 
         x0, L = x, None
-        dirichlet_energies = []
-        baseline_dirichlet_energies = []
+        rayleigh_quotients = []
+        baseline_rayleigh_quotients = []
         for layer in range(self.layers):
             if layer == 0 or self.nonlinear:
                 x_maps = F.dropout(x, p=self.dropout if layer > 0 else 0., training=self.training)
@@ -217,18 +217,18 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
 
             x = self.left_right_linear(x, self.lin_left_weights[layer], self.lin_right_weights[layer])
 
-            if return_dirichlet_energy:
+            if return_rayleigh_quotient:
                 x_old = x
 
             # Use the adjacency matrix rather than the diagonal
             x = torch_sparse.spmm(L[0], L[1], x.size(0), x.size(0), x)
 
-            if return_dirichlet_energy:
-                dirichlet_energy, baseline_dirichlet_energy = compute_dirichlet_energy_and_baseline(x_old,
+            if return_rayleigh_quotient:
+                rayleigh_quotient, baseline_rayleigh_quotient = compute_rayleigh_quotient_and_baseline(x_old,
                                                                                                     x,
                                                                                                     self.id_L)
-                dirichlet_energies.append(dirichlet_energy.item())
-                baseline_dirichlet_energies.append(baseline_dirichlet_energy.item())
+                rayleigh_quotients.append(rayleigh_quotient.item())
+                baseline_rayleigh_quotients.append(baseline_rayleigh_quotient.item())
 
             if self.use_act:
                 x = F.elu(x)
@@ -238,8 +238,8 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
 
         x = x.reshape(self.graph_size, -1)
         x = self.lin2(x)
-        if return_dirichlet_energy:
-            return F.log_softmax(x, dim=1), dirichlet_energies, baseline_dirichlet_energies
+        if return_rayleigh_quotient:
+            return F.log_softmax(x, dim=1), rayleigh_quotients, baseline_rayleigh_quotients
         return F.log_softmax(x, dim=1)
 
 
@@ -302,7 +302,7 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
 
         return x
 
-    def forward(self, x, return_dirichlet_energy=False):
+    def forward(self, x, return_rayleigh_quotient=False):
         x = F.dropout(x, p=self.input_dropout, training=self.training)
         x = self.lin1(x)
         if self.use_act:
@@ -314,8 +314,8 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
         x = x.view(self.graph_size * self.final_d, -1)
 
         x0, L = x, None
-        dirichlet_energies = []
-        baseline_dirichlet_energies = []
+        rayleigh_quotients = []
+        baseline_rayleigh_quotients = []
         for layer in range(self.layers):
             if layer == 0 or self.nonlinear:
                 x_maps = F.dropout(x, p=self.dropout if layer > 0 else 0., training=self.training)
@@ -327,17 +327,17 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
 
             x = self.left_right_linear(x, self.lin_left_weights[layer], self.lin_right_weights[layer])
 
-            if return_dirichlet_energy:
+            if return_rayleigh_quotient:
                 x_old = x
             # Use the adjacency matrix rather than the diagonal
             x = torch_sparse.spmm(L[0], L[1], x.size(0), x.size(0), x)
 
-            if return_dirichlet_energy:
-                dirichlet_energy, baseline_dirichlet_energy = compute_dirichlet_energy_and_baseline(x_old,
+            if return_rayleigh_quotient:
+                rayleigh_quotient, baseline_rayleigh_quotient = compute_rayleigh_quotient_and_baseline(x_old,
                                                                                                     x,
                                                                                                     self.id_L)
-                dirichlet_energies.append(dirichlet_energy.item())
-                baseline_dirichlet_energies.append(baseline_dirichlet_energy.item())
+                rayleigh_quotients.append(rayleigh_quotient.item())
+                baseline_rayleigh_quotients.append(baseline_rayleigh_quotient.item())
 
             if self.use_act:
                 x = F.elu(x)
@@ -350,8 +350,8 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
 
         x = x.reshape(self.graph_size, -1)
         x = self.lin2(x)
-        if return_dirichlet_energy:
-            return F.log_softmax(x, dim=1), dirichlet_energies, baseline_dirichlet_energies
+        if return_rayleigh_quotient:
+            return F.log_softmax(x, dim=1), rayleigh_quotients, baseline_rayleigh_quotients
         return F.log_softmax(x, dim=1)
     
 class DiscreteIdentityDiffusion(SheafDiffusion):
@@ -402,7 +402,7 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
 
         return x
 
-    def forward(self, x, return_dirichlet_energy=False):
+    def forward(self, x, return_rayleigh_quotient=False):
         x = F.dropout(x, p=self.input_dropout, training=self.training)
         x = self.lin1(x)
         if self.use_act:
@@ -414,21 +414,21 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
         x = x.view(self.graph_size * self.final_d, -1)
 
         x0= x
-        dirichlet_energies = []
+        rayleigh_quotients = []
         for layer in range(self.layers):
 
             x = F.dropout(x, p=self.dropout, training=self.training)
 
             x = self.left_right_linear(x, self.lin_left_weights[layer], self.lin_right_weights[layer])
 
-            if return_dirichlet_energy:
+            if return_rayleigh_quotient:
                 x_old_t = torch.transpose(x, 0, 1)
             # Use the adjacency matrix rather than the diagonal
             x = torch_sparse.spmm(self.L[0], self.L[1], x.size(0), x.size(0), x)
 
-            if return_dirichlet_energy:
-                dirichlet_energy = torch.sum(x_old_t @ x)
-                dirichlet_energies.append(dirichlet_energy.item())
+            if return_rayleigh_quotient:
+                rayleigh_quotient = torch.sum(x_old_t @ x)
+                rayleigh_quotients.append(rayleigh_quotient.item())
 
             if self.use_act:
                 x = F.elu(x)
@@ -438,6 +438,6 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
 
         x = x.reshape(self.graph_size, -1)
         x = self.lin2(x)
-        if return_dirichlet_energy:
-            return F.log_softmax(x, dim=1), dirichlet_energies, dirichlet_energies
+        if return_rayleigh_quotient:
+            return F.log_softmax(x, dim=1), rayleigh_quotients, rayleigh_quotients
         return F.log_softmax(x, dim=1)

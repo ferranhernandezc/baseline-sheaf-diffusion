@@ -120,8 +120,8 @@ def run_exp(args, dataset, model_cls, fold):
     print(f"Test acc: {test_acc:.4f}")
     print(f"Best val acc: {best_val_acc:.4f}")
 
-    if args.return_dirichlet_energy:
-        _, dirichlet_energies, baseline_dirichlet_energies = best_model(data.x, return_dirichlet_energy=True)
+    if args.return_rayleigh_quotient:
+        _, rayleigh_quotients, baseline_rayleigh_quotients = best_model(data.x, return_rayleigh_quotient=True)
 
     if "ODE" not in args['model']:
         # Debugging for discrete models
@@ -138,8 +138,8 @@ def run_exp(args, dataset, model_cls, fold):
 
     wandb.log({'best_test_acc': test_acc, 'best_val_acc': best_val_acc, 'best_epoch': best_epoch})
     keep_running = False if test_acc < args['min_acc'] else True
-    if args.return_dirichlet_energy:
-        return test_acc, best_val_acc, keep_running, dirichlet_energies, baseline_dirichlet_energies
+    if args.return_rayleigh_quotient:
+        return test_acc, best_val_acc, keep_running, rayleigh_quotients, baseline_rayleigh_quotients
     return test_acc, best_val_acc, keep_running
 
 
@@ -197,24 +197,24 @@ if __name__ == '__main__':
     dir_energ = []
     m = dataset.data.edge_index.shape[1]/2
     for fold in tqdm(range(args.folds)):
-        if not args.return_dirichlet_energy:
+        if not args.return_rayleigh_quotient:
             test_acc, best_val_acc, keep_running = run_exp(wandb.config, dataset, model_cls, fold)
             results.append([test_acc, best_val_acc])
         else:
-            test_acc, best_val_acc, keep_running, dirichlet_energies, baseline_dirichlet_energies = run_exp(wandb.config,
+            test_acc, best_val_acc, keep_running, rayleigh_quotients, baseline_rayleigh_quotients = run_exp(wandb.config,
                                                                                                             dataset,
                                                                                                             model_cls,
                                                                                                             fold)
-            dirichlet_energies = [dir_en/m for dir_en in dirichlet_energies]
-            baseline_dirichlet_energies = [dir_en/m for dir_en in baseline_dirichlet_energies]
+            rayleigh_quotients = [dir_en/m for dir_en in rayleigh_quotients]
+            baseline_rayleigh_quotients = [dir_en/m for dir_en in baseline_rayleigh_quotients]
             results.append([test_acc, best_val_acc])
             plt.clf()
-            plt.plot(dirichlet_energies, label='Sheaf Dirichlet Energy')
-            plt.plot(baseline_dirichlet_energies, label='Baseline Dirichlet Energy')
+            plt.plot(rayleigh_quotients, label='Sheaf Rayleigh Quotient')
+            plt.plot(baseline_rayleigh_quotients, label='Baseline Rayleigh Quotient')
             plt.legend()
-            plt.savefig(f'./plots/{dataset.name}/{args.model}/fold_{fold}_dirichlet_energies.png')
-            print(f"Dirichlet Energies: {dirichlet_energies}")
-            print(f"Baseline Dirichlet Energies: {dirichlet_energies}")
+            plt.savefig(f'./plots/{dataset.name}/{args.model}/fold_{fold}_rayleigh_quotients.png')
+            print(f"Sheaf Rayleigh Quotient: {rayleigh_quotients}")
+            print(f"Baseline Rayleigh Quotient: {baseline_rayleigh_quotients}")
         if not keep_running:
             break
 
