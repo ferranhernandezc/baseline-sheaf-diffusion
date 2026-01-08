@@ -1,10 +1,9 @@
 #!/bin/sh
 
 python -m exp.run \
-    --add_hp=False \
     --add_lp=True \
-    --d=4 \
-    --dataset=chameleon \
+    --d=3 \
+    --dataset=squirrel \
     --dropout=0 \
     --early_stopping=100 \
     --epochs=1000 \
@@ -13,14 +12,15 @@ python -m exp.run \
     --input_dropout=0.7 \
     --layers=5 \
     --lr=0.01 \
-    --model=DiagSheaf \
+    --model=BundleSheaf \
+    --orth=householder \
     --second_linear=True \
-    --sheaf_decay=0.0012638885974822734 \
-    --weight_decay=0.0002969905682317406 \
+    --weight_decay=0.00011215791366362148 \
     --left_weights=True \
     --right_weights=True \
     --use_act=True \
     --normalised=True \
     --edge_weights=True \
     --stop_strategy=acc \
+    --return_rayleigh_quotient=True \
     --entity="${ENTITY}" 

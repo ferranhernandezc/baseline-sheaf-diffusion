@@ -16,4 +16,6 @@ python -m exp.run \
     --model=IdentitySheaf \
     --normalised=True \
     --sparse_learner=True \
+    --save_best_model=True \
+    --return_rayleigh_quotient \
     --entity="${ENTITY}"

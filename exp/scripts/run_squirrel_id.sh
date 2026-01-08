@@ -2,17 +2,17 @@
 
 python -m exp.run \
     --add_lp=True \
-    --d=3 \
+    --d=1 \
     --dataset=squirrel \
     --dropout=0 \
     --early_stopping=100 \
     --epochs=1000 \
     --folds=10 \
-    --hidden_channels=32 \
+    --hidden_channels=96 \
     --input_dropout=0.7 \
     --layers=5 \
     --lr=0.01 \
-    --model=BundleSheaf \
+    --model=IdentitySheaf \
     --orth=householder \
     --second_linear=True \
     --weight_decay=0.00011215791366362148 \
@@ -22,4 +22,5 @@ python -m exp.run \
     --normalised=True \
     --edge_weights=True \
     --stop_strategy=acc \
+    --return_rayleigh_quotient=True \
     --entity="${ENTITY}" 
