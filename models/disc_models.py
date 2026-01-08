@@ -45,9 +45,9 @@ class DiscreteDiagSheafDiffusion(SheafDiffusion):
                                                          deg_normalised=self.deg_normalised,
                                                          add_hp=self.add_hp, add_lp=self.add_lp)
         
-        maps = torch.eye(self.d).reshape(1,self.d,self.d).repeat(self.edge_index.shape[1],1,1).to(self.device)
+        maps = torch.eye(self.final_d).reshape(1,self.final_d,self.final_d).repeat(self.edge_index.shape[1],1,1).to(self.device)
         laplacian_builder = lb.GeneralLaplacianBuilder(
-            self.graph_size, edge_index, d=self.d, add_lp=self.add_lp, add_hp=self.add_hp,
+            self.graph_size, edge_index, d=self.final_d,
             normalised=self.normalised, deg_normalised=self.deg_normalised)
         self.id_L, _ = laplacian_builder(maps)
 
@@ -154,9 +154,9 @@ class DiscreteBundleSheafDiffusion(SheafDiffusion):
             self.graph_size, edge_index, d=self.d, add_hp=self.add_hp,
             add_lp=self.add_lp, orth_map=self.orth_trans)
         
-        maps = torch.eye(self.d).reshape(1,self.d,self.d).repeat(self.edge_index.shape[1],1,1).to(self.device)
+        maps = torch.eye(self.final_d).reshape(1,self.final_d,self.final_d).repeat(self.edge_index.shape[1],1,1).to(self.device)
         laplacian_builder = lb.GeneralLaplacianBuilder(
-            self.graph_size, edge_index, d=self.d, add_lp=self.add_lp, add_hp=self.add_hp,
+            self.graph_size, edge_index, d=self.final_d,
             normalised=self.normalised, deg_normalised=self.deg_normalised)
         self.id_L, _ = laplacian_builder(maps)
 
@@ -275,10 +275,9 @@ class DiscreteGeneralSheafDiffusion(SheafDiffusion):
         self.laplacian_builder = lb.GeneralLaplacianBuilder(
             self.graph_size, edge_index, d=self.d, add_lp=self.add_lp, add_hp=self.add_hp,
             normalised=self.normalised, deg_normalised=self.deg_normalised)
-        
-        maps = torch.eye(self.d).reshape(1,self.d,self.d).repeat(self.edge_index.shape[1],1,1).to(self.device)
+        maps = torch.eye(self.final_d).reshape(1,self.final_d,self.final_d).repeat(self.edge_index.shape[1],1,1).to(self.device)
         laplacian_builder = lb.GeneralLaplacianBuilder(
-            self.graph_size, edge_index, d=self.d, add_lp=self.add_lp, add_hp=self.add_hp,
+            self.graph_size, edge_index, d=self.final_d,
             normalised=self.normalised, deg_normalised=self.deg_normalised)
         self.id_L, _ = laplacian_builder(maps)
 
@@ -382,6 +381,12 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
         self.L, trans_maps = laplacian_builder(maps)
         self.sheaf_learners[0].set_L(trans_maps)
 
+        maps = torch.eye(self.final_d).reshape(1,self.final_d,self.final_d).repeat(self.edge_index.shape[1],1,1).to(self.device)
+        laplacian_builder2 = lb.GeneralLaplacianBuilder(
+            self.graph_size, edge_index, d=self.final_d,
+            normalised=self.normalised, deg_normalised=self.deg_normalised)
+        self.id_L, _ = laplacian_builder2(maps)
+
         self.epsilons = nn.ParameterList()
         for i in range(self.layers):
             self.epsilons.append(nn.Parameter(torch.zeros((self.final_d, 1))))
@@ -415,6 +420,7 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
 
         x0= x
         rayleigh_quotients = []
+        baseline_rayleigh_quotients = []
         for layer in range(self.layers):
 
             x = F.dropout(x, p=self.dropout, training=self.training)
@@ -422,13 +428,16 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
             x = self.left_right_linear(x, self.lin_left_weights[layer], self.lin_right_weights[layer])
 
             if return_rayleigh_quotient:
-                x_old_t = torch.transpose(x, 0, 1)
+                x_old = x.clone().detach()
             # Use the adjacency matrix rather than the diagonal
             x = torch_sparse.spmm(self.L[0], self.L[1], x.size(0), x.size(0), x)
 
             if return_rayleigh_quotient:
-                rayleigh_quotient = torch.sum(x_old_t @ x)
+                rayleigh_quotient, baseline_rayleigh_quotient = compute_rayleigh_quotient_and_baseline(x_old,
+                                                                                                    x.clone().detach(),
+                                                                                                    self.id_L)
                 rayleigh_quotients.append(rayleigh_quotient.item())
+                baseline_rayleigh_quotients.append(baseline_rayleigh_quotient.item())
 
             if self.use_act:
                 x = F.elu(x)
@@ -439,5 +448,5 @@ class DiscreteIdentityDiffusion(SheafDiffusion):
         x = x.reshape(self.graph_size, -1)
         x = self.lin2(x)
         if return_rayleigh_quotient:
-            return F.log_softmax(x, dim=1), rayleigh_quotients, rayleigh_quotients
+            return F.log_softmax(x, dim=1), rayleigh_quotients, baseline_rayleigh_quotients
         return F.log_softmax(x, dim=1)
