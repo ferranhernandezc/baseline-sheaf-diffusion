@@ -201,8 +201,6 @@ if __name__ == '__main__':
     print(f"Running with wandb account: {args.entity}")
     print(args)
     wandb.init(project="sheaf", config=vars(args), entity=args.entity)
-    dir_energ = []
-    m = dataset.data.edge_index.shape[1]/2
     for fold in tqdm(range(args.folds)):
         if not args.return_rayleigh_quotient:
             test_acc, best_val_acc, keep_running = run_exp(wandb.config, dataset, model_cls, fold)
@@ -228,7 +226,11 @@ if __name__ == '__main__':
     test_acc_mean, val_acc_mean = np.mean(results, axis=0) * 100
     test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
 
-    wandb_results = {'test_acc': test_acc_mean, 'val_acc': val_acc_mean, 'test_acc_std': test_acc_std}
+    wandb_results = {'test_acc': test_acc_mean, 
+                     'val_acc': val_acc_mean, 
+                     'test_acc_std': test_acc_std, 
+                     "sheaf_rayleigh_quotients": rayleigh_quotients,
+                     "baseline_rayleigh_quotients": baseline_rayleigh_quotients}
     wandb.log(wandb_results)
     wandb.finish()
 
