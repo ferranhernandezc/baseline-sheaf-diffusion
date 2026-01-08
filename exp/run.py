@@ -120,6 +120,9 @@ def run_exp(args, dataset, model_cls, fold):
     print(f"Test acc: {test_acc:.4f}")
     print(f"Best val acc: {best_val_acc:.4f}")
 
+    if args.save_best_model:
+        torch.save(best_model, f"./best_models/{dataset.name}/{args.model}/fold_{fold}_model.pt")
+
     if args.return_rayleigh_quotient:
         _, rayleigh_quotients, baseline_rayleigh_quotients = best_model(data.x, return_rayleigh_quotient=True)
 
@@ -172,6 +175,10 @@ if __name__ == '__main__':
     os.makedirs("./plots", exist_ok=True)
     os.makedirs(f"./plots/{dataset.name}", exist_ok=True)
     os.makedirs(f"./plots/{dataset.name}/{args.model}", exist_ok=True)
+    os.makedirs("./best_models/", exist_ok=True)
+    os.makedirs(f"./best_models/{dataset.name}", exist_ok=True)
+    os.makedirs(f"./best_models/{dataset.name}/{args.model}", exist_ok=True)
+
 
     # Add extra arguments
     args.sha = sha
@@ -205,8 +212,8 @@ if __name__ == '__main__':
                                                                                                             dataset,
                                                                                                             model_cls,
                                                                                                             fold)
-            rayleigh_quotients = [dir_en/m for dir_en in rayleigh_quotients]
-            baseline_rayleigh_quotients = [dir_en/m for dir_en in baseline_rayleigh_quotients]
+            rayleigh_quotients = [dir_en for dir_en in rayleigh_quotients]
+            baseline_rayleigh_quotients = [dir_en for dir_en in baseline_rayleigh_quotients]
             results.append([test_acc, best_val_acc])
             plt.clf()
             plt.plot(rayleigh_quotients, label='Sheaf Rayleigh Quotient')

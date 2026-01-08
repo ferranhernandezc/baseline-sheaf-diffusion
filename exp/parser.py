@@ -89,4 +89,5 @@ def get_parser():
                         help="Maximum number steps for the dopri5Early test integrator. "
                              "used if getting OOM errors at test time")
     parser.add_argument("--return_rayleigh_quotient", dest='return_rayleigh_quotient', type=str2bool, default=False)
+    parser.add_argument("--save_best_model", dest="save_best_model", type=str2bool, default=False)
     return parser
