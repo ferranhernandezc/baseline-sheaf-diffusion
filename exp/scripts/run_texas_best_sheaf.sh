@@ -15,5 +15,6 @@ python -m exp.run \
     --model=BundleSheaf \
     --normalised=True \
     --sparse_learner=True \
-    --return_rayleigh_quotient \
+    --return_rayleigh_quotient=True \
+    --save_best_model=True \
     --entity="${ENTITY}"

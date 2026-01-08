@@ -2,7 +2,7 @@
 
 python -m exp.run \
     --dataset=texas \
-    --add_hp=True \
+    --add_hp=False \
     --d=1 \
     --layers=5 \
     --hidden_channels=32 \
@@ -17,5 +17,5 @@ python -m exp.run \
     --normalised=True \
     --sparse_learner=True \
     --save_best_model=True \
-    --return_rayleigh_quotient \
+    --return_rayleigh_quotient=True \
     --entity="${ENTITY}"
