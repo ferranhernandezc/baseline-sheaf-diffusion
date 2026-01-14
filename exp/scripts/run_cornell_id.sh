@@ -5,13 +5,13 @@ python -m exp.run \
     --add_lp=False \
     --d=1 \
     --dataset=cornell \
-    --dropout=0.9 \
+    --dropout=0.8 \
     --early_stopping=200 \
     --epochs=500 \
     --folds=10 \
     --hidden_channels=64 \
     --input_dropout=0.0 \
-    --layers=4 \
+    --layers=5 \
     --lr=0.02 \
     --model=IdentitySheaf \
     --sheaf_decay=0.00031764232712732976 \
