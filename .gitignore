@@ -7,3 +7,5 @@ wandb/
 *.DS_Store
 .venv*
 hpc_things*
+best_models*
+plots*
