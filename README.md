@@ -99,17 +99,3 @@ can be downloaded from the [Geom-GCN repo](https://github.com/graphdml-uiuc-jlu/
 The files for the Planetoid datasets can also be found in the [Geom-GCN repo](https://github.com/graphdml-uiuc-jlu/geom-gcn/tree/master/data). 
 The downloaded files must be placed into `datasets/<DATASET_NAME>/raw/`.
 
-## Credits
-
-For attribution in academic contexts, please use the bibtex entry below:
-```
-@inproceedings{
- bodnar2022neural,
- title={Neural Sheaf Diffusion: A Topological Perspective on Heterophily and Oversmoothing in {GNN}s},
- author={Cristian Bodnar and Francesco Di Giovanni and Benjamin Paul Chamberlain and Pietro Li{\`o} and Michael M. Bronstein},
- booktitle={Advances in Neural Information Processing Systems},
- editor={Alice H. Oh and Alekh Agarwal and Danielle Belgrave and Kyunghyun Cho},
- year={2022},
- url={https://openreview.net/forum?id=vbPsD-BhOZ}
-}
-```
