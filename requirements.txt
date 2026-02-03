@@ -1,4 +1,5 @@
 torchdiffeq==0.2.2
+torch_householder
 wandb
 tqdm==4.62.3
 networkx==2.6.3
