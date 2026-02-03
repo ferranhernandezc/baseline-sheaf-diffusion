@@ -23,4 +23,5 @@ python -m exp.run \
     --edge_weights=True \
     --stop_strategy=acc \
     --return_rayleigh_quotient=True \
+    --save_best_model=True \
     --entity="${ENTITY}" 
